@@ -5,7 +5,7 @@ const API_BASE_URL =
 
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     console.log("Frontend API route called with ID:", id);
     console.log("Using API_BASE_URL:", API_BASE_URL);
@@ -42,7 +42,7 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     const response = await fetch(`${API_BASE_URL}/users/${id}`, {

@@ -5,7 +5,7 @@ const API_BASE_URL =
 
 export async function GET(request, { params }) {
   try {
-    const { postId } = params;
+    const { postId } = await params;
 
     const response = await fetch(`${API_BASE_URL}/posts/${postId}`);
     const data = await response.json();
@@ -28,7 +28,7 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
   try {
-    const { postId } = params;
+    const { postId } = await params;
     const body = await request.json();
 
     const response = await fetch(`${API_BASE_URL}/posts/${postId}`, {
@@ -59,7 +59,7 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    const { postId } = params;
+    const { postId } = await params;
     const body = await request.json();
 
     const response = await fetch(`${API_BASE_URL}/posts/${postId}`, {

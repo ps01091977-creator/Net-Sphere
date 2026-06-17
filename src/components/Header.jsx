@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "./Button";
 import { Input } from "./Input";
@@ -24,6 +25,8 @@ import {
 } from "lucide-react";
 
 export function Header() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user, logout } = useAuth();
   const [currentProfile, setCurrentProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,10 +36,48 @@ export function Header() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(3);
-  const [messageCount, setMessageCount] = useState(2);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [messageCount, setMessageCount] = useState(0);
   const dropdownRef = useRef(null);
   const searchRef = useRef(null); // Add search ref
+
+  // Fetch live counts for messages and notifications
+  useEffect(() => {
+    const fetchCounts = async () => {
+      if (!user) return;
+      try {
+        // Fetch notifications count
+        const notifRes = await fetch(`/api/notifications/${user.uid}`);
+        if (notifRes.ok) {
+          const notifications = await notifRes.json();
+          const unreadNotifs = notifications.filter((n) => !n.isRead).length;
+          setNotificationCount(unreadNotifs);
+        }
+
+        // Fetch messages count
+        const msgRes = await fetch(`/api/messages/conversations/${user.uid}`);
+        if (msgRes.ok) {
+          const conversations = await msgRes.json();
+          const unreadMsgs = conversations.filter(
+            (c) => c.lastMessage.senderId !== user.uid && !c.lastMessage.isRead
+          ).length;
+          // Note: Since we don't have isRead on messages database yet, we can check if last message is not by user
+          // For simplicity we count conversations where last message is from other user.
+          // Let's just use conversations count where senderId is not user
+          const incomingConversationsCount = conversations.filter(
+            (c) => c.lastMessage.senderId !== user.uid
+          ).length;
+          setMessageCount(incomingConversationsCount);
+        }
+      } catch (err) {
+        console.error("Error fetching header counts:", err);
+      }
+    };
+
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 8000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   // Debounce search query
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
@@ -180,21 +221,23 @@ export function Header() {
   };
 
   const navItems = [
-    { icon: Home, label: "Home", href: "/", active: true },
-    { icon: Users, label: "My Network", href: "/network" },
-    { icon: Briefcase, label: "Jobs", href: "/jobs" },
+    { icon: Home, label: "Home", href: "/", active: pathname === "/" },
+    { icon: Users, label: "My Network", href: "/network", active: pathname === "/network" },
+    { icon: Plus, label: "Add Connection", href: "/add-connection", active: pathname === "/add-connection" },
     {
       icon: MessageSquare,
       label: "Messaging",
       href: "/messages",
       count: messageCount,
+      active: pathname === "/messages",
     },
     {
       icon: Bell,
       label: "Notifications",
       href: "/notifications",
       count: notificationCount,
-      hasBlinking: true,
+      hasBlinking: notificationCount > 0,
+      active: pathname === "/notifications",
     },
   ];
 
@@ -210,7 +253,7 @@ export function Header() {
                   <Users className="h-5 w-5 text-white" />
                 </div>
                 <span className="hidden sm:block font-bold text-xl text-gray-900 group-hover:text-blue-600 transition-colors duration-200">
-                  Mini LinkedIn
+                  NetSphere
                 </span>
               </Link>
             </div>
@@ -513,58 +556,7 @@ export function Header() {
                     </div>
                   </div>
 
-                  {/* Navigation Items */}
-                  <div className="py-4">
-                    {navItems.map((item, index) => (
-                      <Link
-                        key={item.label}
-                        href={item.href}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        <div className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-all duration-200">
-                          <div className="flex items-center space-x-4">
-                            <div className="relative">
-                              <item.icon
-                                className={`h-6 w-6 ${
-                                  item.active
-                                    ? "text-blue-600"
-                                    : "text-gray-600"
-                                }`}
-                              />
 
-                              {/* Notification Badge */}
-                              {item.count > 0 && (
-                                <div className="absolute -top-1 -right-1 flex items-center justify-center">
-                                  {/* Static Badge */}
-                                  <span className="relative bg-red-500 text-white text-[10px] rounded-full h-4 w-4 min-w-[16px] px-[2px] flex items-center justify-center font-semibold z-10">
-                                    {item.count > 99 ? "99+" : item.count}
-                                  </span>
-
-                                  {/* Blinking Dot */}
-                                  {item.hasBlinking && (
-                                    <>
-                                      <span className="absolute h-3 w-3 rounded-full animate-ping bg-red-400 opacity-75"></span>
-                                      <span className="absolute h-3 w-3 rounded-full animate-pulse bg-red-500"></span>
-                                    </>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            <span
-                              className={`text-base font-medium ${
-                                item.active ? "text-blue-600" : "text-gray-900"
-                              }`}
-                            >
-                              {item.label}
-                            </span>
-                          </div>
-                          {item.active && (
-                            <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                          )}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
 
                   {/* Additional Menu Items */}
                   <div className="py-4 border-t border-gray-200">
@@ -607,6 +599,34 @@ export function Header() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Bottom Navigation Bar */}
+      {user && !(pathname === "/messages" && searchParams.get("userId")) && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 lg:hidden shadow-[0_-2px_10px_rgba(0,0,0,0.05)] pb-safe">
+          <div className="flex items-center justify-around h-16 max-w-md mx-auto">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link key={item.label} href={item.href} className="flex-1 flex flex-col items-center justify-center h-full">
+                  <div className={`flex flex-col items-center justify-center w-full ${item.active ? "text-blue-600 font-semibold" : "text-gray-500 hover:text-gray-800"}`}>
+                    <div className={`relative p-1 px-4 rounded-full transition-all duration-200 ${item.active ? "bg-blue-50/80" : "hover:bg-gray-50"}`}>
+                      <Icon className="h-5 w-5" />
+                      {item.count > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] rounded-full h-3.5 min-w-[14px] px-[2px] flex items-center justify-center font-bold z-10">
+                          {item.count > 99 ? "99+" : item.count}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] mt-0.5 font-medium transition-colors duration-150 truncate max-w-full px-1">
+                      {item.label}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}

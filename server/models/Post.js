@@ -1,5 +1,29 @@
 const mongoose = require("mongoose");
 
+const replySchema = new mongoose.Schema(
+  {
+    content: {
+      type: String,
+      required: true,
+      maxlength: 500,
+    },
+    authorId: {
+      type: String,
+      required: true,
+    },
+    authorName: {
+      type: String,
+      required: true,
+    },
+    authorAvatar: {
+      type: String,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
 const commentSchema = new mongoose.Schema(
   {
     content: {
@@ -18,6 +42,7 @@ const commentSchema = new mongoose.Schema(
     authorAvatar: {
       type: String,
     },
+    replies: [replySchema],
   },
   {
     timestamps: true,

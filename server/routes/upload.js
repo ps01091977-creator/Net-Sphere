@@ -112,16 +112,33 @@ router.post("/", upload.single("file"), handleMulterError, async (req, res) => {
     }
 
     console.log("Starting Cloudinary upload with options:", uploadOptions);
+    console.log("Cloudinary config checks: cloud_name =", cloudinary.config().cloud_name, ", api_key =", cloudinary.config().api_key ? "PRESENT" : "MISSING");
+
+    // Check if Cloudinary is configured
+    if (!cloudinary.config().api_key) {
+      console.log("Cloudinary API key not configured. Using placeholder URL.");
+      return res.json({
+        message: "File uploaded successfully (mock)",
+        url: req.file.mimetype.startsWith("video/") 
+          ? "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" 
+          : "https://picsum.photos/800/600",
+        publicId: "mock_id_" + Date.now(),
+        resourceType: uploadOptions.resource_type,
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+      });
+    }
 
     // Upload to Cloudinary
     const result = await new Promise((resolve, reject) => {
+      console.log("Initiating cloudinary.uploader.upload_stream...");
       cloudinary.uploader
         .upload_stream(uploadOptions, (error, result) => {
           if (error) {
-            console.error("Cloudinary error:", error);
+            console.error("Cloudinary upload_stream error in general route:", error);
             reject(error);
           } else {
-            console.log("Cloudinary upload successful:", result.secure_url);
+            console.log("Cloudinary upload_stream success in general route. Full response object:", JSON.stringify(result, null, 2));
             resolve(result);
           }
         })
@@ -181,9 +198,21 @@ router.post(
         size: req.file.size,
       });
 
+      // Check if Cloudinary is configured
+      if (!cloudinary.config().api_key) {
+        console.log("Cloudinary API key not configured for profile picture. Using placeholder URL.");
+        return res.json({
+          message: "Profile picture uploaded successfully (mock)",
+          url: "https://ui-avatars.com/api/?name=User&background=random",
+          publicId: "mock_id_" + Date.now()
+        });
+      }
+
       // Upload to Cloudinary
-      console.log("Starting Cloudinary upload...");
+      console.log("Starting Cloudinary upload for profile picture...");
+      console.log("Cloudinary config checks (profile-picture): cloud_name =", cloudinary.config().cloud_name, ", api_key =", cloudinary.config().api_key ? "PRESENT" : "MISSING");
       const result = await new Promise((resolve, reject) => {
+        console.log("Initiating cloudinary.uploader.upload_stream for profile picture...");
         cloudinary.uploader
           .upload_stream(
             {
@@ -196,10 +225,10 @@ router.post(
             },
             (error, result) => {
               if (error) {
-                console.error("Cloudinary error:", error);
+                console.error("Cloudinary upload_stream error in profile-picture route:", error);
                 reject(error);
               } else {
-                console.log("Cloudinary upload successful:", result.secure_url);
+                console.log("Cloudinary upload_stream success in profile-picture route. Full response object:", JSON.stringify(result, null, 2));
                 resolve(result);
               }
             }
@@ -228,12 +257,35 @@ router.post(
   handleMulterError,
   async (req, res) => {
     try {
+      console.log("Post image upload endpoint hit");
+      console.log("File received:", req.file ? "Yes" : "No");
+
       if (!req.file) {
+        console.log("No file in request");
         return res.status(400).json({ message: "No file uploaded" });
       }
 
+      console.log("File details:", {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+      });
+
+      // Check if Cloudinary is configured
+      if (!cloudinary.config().api_key) {
+        console.log("Cloudinary API key not configured for post image. Using placeholder URL.");
+        return res.json({
+          message: "Post image uploaded successfully (mock)",
+          url: "https://picsum.photos/1200/630",
+          publicId: "mock_id_" + Date.now()
+        });
+      }
+
       // Upload to Cloudinary
+      console.log("Starting Cloudinary upload for post image...");
+      console.log("Cloudinary config checks (post-image): cloud_name =", cloudinary.config().cloud_name, ", api_key =", cloudinary.config().api_key ? "PRESENT" : "MISSING");
       const result = await new Promise((resolve, reject) => {
+        console.log("Initiating cloudinary.uploader.upload_stream for post image...");
         cloudinary.uploader
           .upload_stream(
             {
@@ -245,8 +297,13 @@ router.post(
               ],
             },
             (error, result) => {
-              if (error) reject(error);
-              else resolve(result);
+              if (error) {
+                console.error("Cloudinary upload_stream error in post-image route:", error);
+                reject(error);
+              } else {
+                console.log("Cloudinary upload_stream success in post-image route. Full response object:", JSON.stringify(result, null, 2));
+                resolve(result);
+              }
             }
           )
           .end(req.file.buffer);

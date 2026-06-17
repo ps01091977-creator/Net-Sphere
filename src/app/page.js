@@ -404,7 +404,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 pb-20 lg:pb-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto">
           {/* Left Sidebar - Hidden on mobile and tablet, visible on large screens */}
           <div className="hidden lg:block lg:col-span-3">

@@ -25,6 +25,8 @@ import {
   Send,
   Edit3,
   ChevronDown,
+  Plus,
+  Clock,
 } from "lucide-react";
 
 export function PostCard({
@@ -51,9 +53,86 @@ export function PostCard({
   const [editContent, setEditContent] = useState(post.content || "");
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState("none");
+  const [loadingConnection, setLoadingConnection] = useState(false);
+  const [replyToCommentId, setReplyToCommentId] = useState(null);
+  const [replyText, setReplyText] = useState("");
+  const [loadingReply, setLoadingReply] = useState(false);
+
+  const handleAddReply = async (commentId) => {
+    if (!user || !replyText.trim() || loadingReply || !post.postId) return;
+    setLoadingReply(true);
+    try {
+      const response = await fetch(`/api/posts/${post.postId}/comment/${commentId}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: replyText.trim(),
+          authorId: user.uid,
+          authorName: user.displayName || user.email,
+          authorAvatar: userProfile?.profilePicture,
+        }),
+      });
+
+      if (response.ok) {
+        const updatedComments = await response.json();
+        setComments(updatedComments);
+        setReplyText("");
+        setReplyToCommentId(null);
+        
+        if (onPostUpdate) {
+          onPostUpdate((prev) => ({
+            ...prev,
+            comments: updatedComments,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Error replying to comment:", error);
+    } finally {
+      setLoadingReply(false);
+    }
+  };
   const pollingIntervalRef = useRef(null);
   const dropdownRef = useRef(null);
   const { user } = useAuth();
+
+  useEffect(() => {
+    const fetchConnectionStatus = async () => {
+      if (!user || !post.authorId || user.uid === post.authorId) return;
+      try {
+        const response = await fetch(`/api/connections/status/${user.uid}/${post.authorId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setConnectionStatus(data.status);
+        }
+      } catch (error) {
+        console.error("Error fetching connection status in PostCard:", error);
+      }
+    };
+
+    fetchConnectionStatus();
+  }, [user, post.authorId]);
+
+  const handleConnect = async () => {
+    if (!user || !post.authorId || loadingConnection) return;
+    setLoadingConnection(true);
+    try {
+      const response = await fetch("/api/connections/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ senderId: user.uid, receiverId: post.authorId }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setConnectionStatus(data.status === "pending" ? "pending_sent" : data.status);
+      }
+    } catch (error) {
+      console.error("Error connecting from PostCard:", error);
+    } finally {
+      setLoadingConnection(false);
+    }
+  };
 
   useEffect(() => {
     const fetchAuthorProfile = async () => {
@@ -595,7 +674,7 @@ export function PostCard({
                   </div>
                 </div>
                 {/* Dropdown Menu for Post Actions */}
-                {isPostOwner && (
+                {isPostOwner ? (
                   <div className="relative" ref={dropdownRef}>
                     <Button
                       variant="ghost"
@@ -629,6 +708,56 @@ export function PostCard({
                       </div>
                     )}
                   </div>
+                ) : (
+                  user && connectionStatus !== "accepted" && (
+                    <div className="flex-shrink-0 ml-2">
+                      {connectionStatus === "none" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleConnect}
+                          disabled={loadingConnection}
+                          className="text-xs text-blue-600 border border-blue-600 hover:bg-blue-50 py-1 px-3 rounded-full flex items-center font-bold transition-all duration-150 cursor-pointer shadow-sm hover:shadow"
+                        >
+                          <Plus className="h-3.5 w-3.5 mr-1" />
+                          Connect
+                        </Button>
+                      )}
+                      {(connectionStatus === "pending_sent" || connectionStatus === "pending") && (
+                        <span className="text-[11px] font-medium text-gray-500 bg-gray-100 border border-gray-200 py-1 px-3 rounded-full flex items-center">
+                          <Clock className="h-3.5 w-3.5 mr-1" />
+                          Pending
+                        </span>
+                      )}
+                      {connectionStatus === "pending_received" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            if (loadingConnection) return;
+                            setLoadingConnection(true);
+                            try {
+                              const res = await fetch("/api/connections/accept", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ senderId: post.authorId, receiverId: user.uid }),
+                              });
+                              if (res.ok) {
+                                setConnectionStatus("accepted");
+                              }
+                            } catch (err) {
+                              console.error(err);
+                            } finally {
+                              setLoadingConnection(false);
+                            }
+                          }}
+                          className="text-xs text-green-600 border border-green-600 hover:bg-green-50 py-1.5 px-3 rounded-full flex items-center font-bold transition-all duration-150 cursor-pointer shadow-sm hover:shadow"
+                        >
+                          Accept
+                        </Button>
+                      )}
+                    </div>
+                  )
                 )}
               </div>
             </div>
@@ -849,6 +978,85 @@ export function PostCard({
                       </div>
                       <p className="text-sm text-gray-800">{comment.content}</p>
                     </div>
+
+                    {/* Reply Action Trigger */}
+                    {user && (
+                      <button
+                        onClick={() => {
+                          setReplyToCommentId(replyToCommentId === comment._id ? null : comment._id);
+                          setReplyText("");
+                        }}
+                        className="text-xs text-gray-500 hover:text-blue-600 font-semibold mt-1.5 ml-2 transition-colors duration-150"
+                      >
+                        Reply
+                      </button>
+                    )}
+
+                    {/* Reply Form (Conditional) */}
+                    {replyToCommentId === comment._id && (
+                      <div className="mt-3 ml-4 flex items-start space-x-2 animate-in slide-in-from-top-1 duration-200">
+                        <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 border border-gray-200">
+                          {getUserAvatar()}
+                        </div>
+                        <div className="flex-1 flex items-center bg-gray-50 rounded-full px-3 py-1.5 border border-gray-250">
+                          <input
+                            type="text"
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            placeholder={`Reply to ${comment.authorName}...`}
+                            className="flex-1 bg-transparent border-none outline-none text-xs text-black placeholder-gray-450 focus:ring-0 focus:border-transparent py-0"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                handleAddReply(comment._id);
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={() => handleAddReply(comment._id)}
+                            disabled={!replyText.trim() || loadingReply}
+                            className="ml-2 text-blue-600 hover:text-blue-800 disabled:opacity-50 flex items-center justify-center"
+                          >
+                            <Send className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Nested Replies List */}
+                    {comment.replies && comment.replies.length > 0 && (
+                      <div className="ml-6 mt-3 pl-3 border-l-2 border-gray-200 space-y-3">
+                        {comment.replies.map((reply) => (
+                          <div key={reply._id} className="flex space-x-2">
+                            <div className="flex-shrink-0">
+                              {reply.authorAvatar ? (
+                                <img
+                                  src={reply.authorAvatar}
+                                  alt={reply.authorName}
+                                  className="h-6 w-6 rounded-full object-cover border border-gray-200"
+                                />
+                              ) : (
+                                <div className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-[9px] font-bold">
+                                  {getInitials(reply.authorName)}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 bg-gray-50 rounded-lg p-2.5 border border-gray-150">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <h5 className="text-xs font-bold text-gray-900">
+                                  {reply.authorName}
+                                </h5>
+                                <span className="text-[9px] text-gray-400">
+                                  {formatDate(reply.createdAt)}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-700 leading-relaxed">{reply.content}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

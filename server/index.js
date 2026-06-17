@@ -108,6 +108,13 @@ try {
   const uploadRouter = require("./routes/upload");
   console.log("Upload router loaded successfully");
 
+  // Load new routers
+  console.log("Loading connections, messages, and notifications routers...");
+  const connectionsRouter = require("./routes/connections");
+  const messagesRouter = require("./routes/messages");
+  const notificationsRouter = require("./routes/notifications");
+  console.log("New routers loaded successfully");
+
   // Register routes
   console.log("Registering routes...");
   app.use("/api/users", usersRouter);
@@ -118,6 +125,15 @@ try {
 
   app.use("/api/upload", uploadRouter);
   console.log("Upload routes registered at /api/upload");
+
+  app.use("/api/connections", connectionsRouter);
+  console.log("Connections routes registered at /api/connections");
+
+  app.use("/api/messages", messagesRouter);
+  console.log("Messages routes registered at /api/messages");
+
+  app.use("/api/notifications", notificationsRouter);
+  console.log("Notifications routes registered at /api/notifications");
 
   console.log("All routes loaded and registered successfully");
 

@@ -5,7 +5,7 @@ const API_BASE_URL =
 
 export async function POST(request, { params }) {
   try {
-    const { postId } = params;
+    const { postId } = await params;
     const body = await request.json();
 
     const response = await fetch(`${API_BASE_URL}/posts/${postId}/share`, {

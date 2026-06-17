@@ -19,7 +19,7 @@ import {
   Camera,
   Upload,
 } from "lucide-react";
-import Image from "next/image";
+import { SafeImage } from "@/components/SafeImage";
 
 export default function ProfilePage() {
   const params = useParams();
@@ -34,8 +34,32 @@ export default function ProfilePage() {
     bio: "",
     profilePicture: "",
   });
+  
+  const [connectionStatus, setConnectionStatus] = useState("none");
+  const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+  const [messageContent, setMessageContent] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   const isOwnProfile = user && user.uid === params.id;
+
+  useEffect(() => {
+    const fetchConnectionStatus = async () => {
+      if (!user || user.uid === params.id) return;
+      try {
+        const response = await fetch(`/api/connections/status/${user.uid}/${params.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setConnectionStatus(data.status);
+        }
+      } catch (error) {
+        console.error("Error fetching connection status:", error);
+      }
+    };
+
+    if (user && params.id) {
+      fetchConnectionStatus();
+    }
+  }, [user, params.id]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -153,6 +177,106 @@ export default function ProfilePage() {
       .slice(0, 2);
   };
 
+  const handleConnect = async () => {
+    if (!user) return;
+    try {
+      const response = await fetch("/api/connections/request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          senderId: user.uid,
+          receiverId: params.id,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setConnectionStatus(data.status === "pending" ? "pending_sent" : data.status);
+      }
+    } catch (error) {
+      console.error("Error connecting:", error);
+    }
+  };
+
+  const handleAcceptConnection = async () => {
+    if (!user) return;
+    try {
+      const response = await fetch("/api/connections/accept", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          senderId: params.id,
+          receiverId: user.uid,
+        }),
+      });
+
+      if (response.ok) {
+        setConnectionStatus("accepted");
+      }
+    } catch (error) {
+      console.error("Error accepting connection:", error);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!user || !window.confirm("Are you sure you want to remove this connection?")) return;
+    try {
+      const response = await fetch("/api/connections/reject", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          senderId: user.uid,
+          receiverId: params.id,
+        }),
+      });
+
+      if (response.ok) {
+        setConnectionStatus("none");
+      }
+    } catch (error) {
+      console.error("Error disconnecting:", error);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageContent.trim() || !user) return;
+    setSendingMessage(true);
+    try {
+      const response = await fetch("/api/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          senderId: user.uid,
+          receiverId: params.id,
+          content: messageContent,
+          initiatedFromProfile: true,
+        }),
+      });
+
+      if (response.ok) {
+        setMessageContent("");
+        setIsMessageModalOpen(false);
+        alert("Message sent successfully!");
+        window.location.href = "/messages";
+      } else {
+        alert("Failed to send message.");
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      alert("Error sending message.");
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
   if (loading) {
     return <ProfileLoadingScreen />;
   }
@@ -174,7 +298,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-8 pb-24 lg:pb-8">
         {/* Main Profile Card */}
         <Card className="mb-6 overflow-hidden">
           {/* Cover Photo */}
@@ -189,19 +313,14 @@ export default function ProfilePage() {
               <div className="relative -mt-16 mb-4 lg:mb-0">
                 {editing ? (
                   <div className="relative">
-                    {editData.profilePicture ? (
-                      <Image
-                        src={editData.profilePicture}
-                        alt="Profile"
-                        width={128}
-                        height={128}
-                        className="w-32 h-32 rounded-full border-4 border-white object-cover shadow-lg"
-                      />
-                    ) : (
-                      <div className="w-32 h-32 rounded-full border-4 border-white bg-blue-500 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
-                        {getInitials(editData.name || "U")}
-                      </div>
-                    )}
+                    <SafeImage
+                      src={editData.profilePicture}
+                      alt="Profile"
+                      width={128}
+                      height={128}
+                      className="w-32 h-32 rounded-full border-4 border-white object-cover shadow-lg animate-fade-in"
+                      fallbackInitials={getInitials(editData.name || "U")}
+                    />
                     <input
                       type="file"
                       accept="image/*"
@@ -219,19 +338,14 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <div className="relative">
-                    {profile.profilePicture ? (
-                      <Image
-                        src={profile.profilePicture}
-                        alt="Profile"
-                        width={128}
-                        height={128}
-                        className="w-32 h-32 rounded-full border-4 border-white object-cover shadow-lg"
-                      />
-                    ) : (
-                      <div className="w-32 h-32 rounded-full border-4 border-white bg-blue-500 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
-                        {getInitials(profile.name || "U")}
-                      </div>
-                    )}
+                    <SafeImage
+                      src={profile.profilePicture}
+                      alt="Profile"
+                      width={128}
+                      height={128}
+                      className="w-32 h-32 rounded-full border-4 border-white object-cover shadow-lg"
+                      fallbackInitials={getInitials(profile.name || "U")}
+                    />
                   </div>
                 )}
               </div>
@@ -324,10 +438,27 @@ export default function ProfilePage() {
                       )
                     ) : (
                       <>
-                        <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                          Connect
-                        </Button>
-                        <Button variant="outline" className="border-gray-300">
+                        {connectionStatus === "none" && (
+                          <Button onClick={handleConnect} className="bg-blue-600 hover:bg-blue-700 text-white">
+                            Connect
+                          </Button>
+                        )}
+                        {(connectionStatus === "pending_sent" || connectionStatus === "pending") && (
+                          <Button disabled className="bg-gray-300 text-gray-500 cursor-not-allowed">
+                            Pending Request
+                          </Button>
+                        )}
+                        {connectionStatus === "pending_received" && (
+                          <Button onClick={handleAcceptConnection} className="bg-green-600 hover:bg-green-700 text-white">
+                            Accept Request
+                          </Button>
+                        )}
+                        {connectionStatus === "accepted" && (
+                          <Button onClick={handleDisconnect} variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
+                            Disconnect
+                          </Button>
+                        )}
+                        <Button onClick={() => setIsMessageModalOpen(true)} variant="outline" className="border-gray-300 text-black hover:bg-gray-50">
                           Message
                         </Button>
                       </>
@@ -382,6 +513,55 @@ export default function ProfilePage() {
             </div>
           </div>
         </Card>
+        {/* Message Modal */}
+        {isMessageModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-xl shadow-2xl border border-gray-100 max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
+                <h3 className="font-semibold text-gray-900">
+                  Send a message to {profile.name}
+                </h3>
+                <button
+                  onClick={() => {
+                    setIsMessageModalOpen(false);
+                    setMessageContent("");
+                  }}
+                  className="p-1 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="p-6">
+                <Textarea
+                  value={messageContent}
+                  onChange={(e) => setMessageContent(e.target.value)}
+                  placeholder="Write a message to start a conversation..."
+                  rows={5}
+                  className="w-full border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg text-black placeholder-gray-400"
+                />
+              </div>
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsMessageModalOpen(false);
+                    setMessageContent("");
+                  }}
+                  className="border-gray-200 text-gray-700 hover:bg-gray-100"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={sendingMessage || !messageContent.trim()}
+                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20"
+                >
+                  {sendingMessage ? "Sending..." : "Send Message"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

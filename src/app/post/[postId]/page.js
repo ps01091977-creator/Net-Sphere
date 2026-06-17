@@ -6,10 +6,11 @@ import { Card, CardContent } from "@/components/Card";
 import { ArrowLeft, Share, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/Button";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import Head from "next/head";
 
-export default function PostPage({ params }) {
+export default function PostPage() {
+  const params = useParams();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

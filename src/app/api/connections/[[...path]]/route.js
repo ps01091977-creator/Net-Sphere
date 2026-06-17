@@ -1,0 +1,56 @@
+import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+async function handleProxy(request, { params }) {
+  try {
+    const { path } = await params;
+    const subpath = path ? path.join("/") : "";
+    const { searchParams } = new URL(request.url);
+    const queryString = searchParams.toString();
+    
+    const targetUrl = `${API_BASE_URL}/connections/${subpath}${
+      queryString ? `?${queryString}` : ""
+    }`;
+
+    // Read body if POST/PUT
+    let body = null;
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method)) {
+      try {
+        body = await request.text();
+      } catch (e) {
+        // Body is empty or not readable
+      }
+    }
+
+    const headers = {
+      "Content-Type": "application/json",
+    };
+
+    const response = await fetch(targetUrl, {
+      method: request.method,
+      headers,
+      body: body ? body : undefined,
+    });
+
+    const data = await response.json();
+
+    return NextResponse.json(data, { status: response.status });
+  } catch (error) {
+    console.error("Connections API proxy error:", error);
+    return NextResponse.json(
+      { error: "Failed to proxy connection request" },
+      { status: 500 }
+    );
+  }
+}
+
+export {
+  handleProxy as GET,
+  handleProxy as POST,
+  handleProxy as PUT,
+  handleProxy as DELETE,
+};

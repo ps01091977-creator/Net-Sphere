@@ -52,6 +52,7 @@ export default function RegisterPage() {
           firebaseUid: user.uid,
           email: user.email,
           name: user.displayName || formData.name || "",
+          profilePicture: user.photoURL || "",
         }),
       });
     } catch (error) {

@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: {
-    default: "Mini LinkedIn - Professional Networking Platform",
-    template: "%s | Mini LinkedIn",
+    default: "NetSphere - Professional Networking Platform",
+    template: "%s | NetSphere",
   },
   description:
     "Connect with industry leaders, share your expertise, and discover opportunities that shape your career journey.",
@@ -29,24 +29,24 @@ export const metadata = {
     "industry connections",
     "job opportunities",
   ],
-  authors: [{ name: "Mini LinkedIn Team" }],
-  creator: "Mini LinkedIn",
-  metadataBase: new URL("https://mini-linkedin-platform.vercel.app"),
+  authors: [{ name: "NetSphere Team" }],
+  creator: "NetSphere",
+  metadataBase: new URL("https://netsphere-platform.vercel.app"),
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://mini-linkedin-platform.vercel.app",
-    title: "Mini LinkedIn - Professional Networking Platform",
+    url: "https://netsphere-platform.vercel.app",
+    title: "NetSphere - Professional Networking Platform",
     description:
       "Connect with industry leaders, share your expertise, and discover opportunities that shape your career journey.",
-    siteName: "Mini LinkedIn",
+    siteName: "NetSphere",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Mini LinkedIn - Professional Networking Platform",
+    title: "NetSphere - Professional Networking Platform",
     description:
       "Connect with industry leaders, share your expertise, and discover opportunities.",
-    creator: "@minilinkedin",
+    creator: "@netsphere",
   },
   robots: {
     index: true,

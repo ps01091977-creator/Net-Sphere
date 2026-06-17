@@ -5,7 +5,7 @@ const API_BASE_URL =
 
 export async function DELETE(request, { params }) {
   try {
-    const { postId, commentId } = params;
+    const { postId, commentId } = await params;
     const body = await request.json();
 
     const response = await fetch(

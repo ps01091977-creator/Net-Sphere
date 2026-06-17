@@ -8,7 +8,7 @@ import { Button } from "@/components/Button";
 import { Textarea } from "@/components/Textarea";
 import { LoadingSpinner } from "@/components/LoadingComponents";
 import { Camera, Upload, X } from "lucide-react";
-import Image from "next/image";
+import { SafeImage } from "@/components/SafeImage";
 
 export default function ProfileCompletionPage() {
   const { user } = useAuth();
@@ -140,11 +140,7 @@ export default function ProfileCompletionPage() {
       setLoading(false);
       return;
     }
-    if (!formData.profilePicture) {
-      setError("Profile picture is required");
-      setLoading(false);
-      return;
-    }
+
 
     try {
       const response = await fetch("/api/users/complete-profile", {
@@ -208,18 +204,19 @@ export default function ProfileCompletionPage() {
               {/* Profile Picture Upload */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
-                  Profile Picture *
+                  Profile Picture
                 </label>
                 <div className="flex items-center space-x-4">
                   <div className="relative">
                     {formData.profilePicture ? (
                       <div className="relative">
-                        <Image
+                        <SafeImage
                           src={formData.profilePicture}
                           alt="Profile"
                           width={100}
                           height={100}
-                          className="rounded-full object-cover border-4 border-gray-200"
+                          className="w-[100px] h-[100px] rounded-full object-cover border-4 border-gray-200"
+                          isAvatar={true}
                         />
                         <button
                           type="button"

@@ -99,6 +99,10 @@ router.post("/", async (req, res) => {
       user.profilePicture =
         profilePicture !== undefined ? profilePicture : user.profilePicture;
 
+      if (user.name && user.headline && user.bio) {
+        user.isProfileComplete = true;
+      }
+
       await user.save();
     } else {
       // Create new user
@@ -110,6 +114,9 @@ router.post("/", async (req, res) => {
         headline: headline || "",
         profilePicture: profilePicture || "",
       });
+      if (user.name && user.headline && user.bio) {
+        user.isProfileComplete = true;
+      }
       await user.save();
     }
 
@@ -124,10 +131,9 @@ router.post("/complete-profile", async (req, res) => {
   try {
     const { firebaseUid, name, headline, bio, profilePicture } = req.body;
 
-    if (!name || !headline || !bio || !profilePicture) {
+    if (!name || !headline || !bio) {
       return res.status(400).json({
-        message:
-          "All fields are required: name, headline, bio, and profile picture",
+        message: "All fields are required: name, headline, and bio",
       });
     }
 
@@ -140,6 +146,7 @@ router.post("/complete-profile", async (req, res) => {
     user.headline = headline;
     user.bio = bio;
     user.profilePicture = profilePicture;
+    user.isProfileComplete = true;
 
     await user.save();
 
@@ -166,6 +173,10 @@ router.put("/:firebaseUid", async (req, res) => {
         user[key] = updates[key];
       }
     });
+
+    if (user.name && user.headline && user.bio) {
+      user.isProfileComplete = true;
+    }
 
     await user.save();
     res.json(user);

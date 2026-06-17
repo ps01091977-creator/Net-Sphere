@@ -106,6 +106,7 @@ export default function LoginPage() {
             email: user.email,
             name: user.displayName || "",
             bio: user.bio || "",
+            profilePicture: user.photoURL || "",
           }),
         });
       } catch (profileError) {

@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const Post = require("../models/Post");
+const Connection = require("../models/Connection");
+const Notification = require("../models/Notification");
+const User = require("../models/User");
 const { v4: uuidv4 } = require("uuid");
 
 // Get all posts or posts by user
@@ -90,6 +93,41 @@ router.post("/", async (req, res) => {
     });
 
     await post.save();
+
+    // Trigger notifications for connections in the background
+    try {
+      const author = await User.findOne({ firebaseUid: authorId });
+      const avatarUrl = author?.profilePicture || "";
+      
+      const connections = await Connection.find({
+        $or: [
+          { senderId: authorId, status: "accepted" },
+          { receiverId: authorId, status: "accepted" },
+        ],
+      });
+
+      const friendIds = connections.map((conn) =>
+        conn.senderId === authorId ? conn.receiverId : conn.senderId
+      );
+
+      if (friendIds.length > 0) {
+        const notifications = friendIds.map((friendId) => ({
+          userId: friendId,
+          senderId: authorId,
+          senderName: authorName,
+          senderAvatar: avatarUrl,
+          type: "post",
+          postId: postId,
+          postContent: content.substring(0, 50),
+          message: `${authorName} uploaded a new post.`,
+        }));
+
+        await Notification.insertMany(notifications);
+      }
+    } catch (notifErr) {
+      console.error("Error creating new post notifications:", notifErr);
+    }
+
     res.status(201).json(post);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -116,6 +154,7 @@ router.post("/:postId/like", async (req, res) => {
       (like) => like.userId === userId
     );
 
+    let liked = false;
     if (existingLikeIndex > -1) {
       // Unlike the post
       post.likes.splice(existingLikeIndex, 1);
@@ -128,11 +167,35 @@ router.post("/:postId/like", async (req, res) => {
         timestamp: new Date(),
       });
       post.likeCount += 1;
+      liked = true;
     }
 
     await post.save();
+
+    // Trigger like notification
+    if (liked && post.authorId !== userId) {
+      try {
+        const liker = await User.findOne({ firebaseUid: userId });
+        const avatarUrl = liker?.profilePicture || "";
+        
+        const notification = new Notification({
+          userId: post.authorId,
+          senderId: userId,
+          senderName: userName,
+          senderAvatar: avatarUrl,
+          type: "like",
+          postId: postId,
+          postContent: post.content.substring(0, 50),
+          message: `${userName} liked your post.`,
+        });
+        await notification.save();
+      } catch (notifErr) {
+        console.error("Error creating like notification:", notifErr);
+      }
+    }
+
     res.json({
-      liked: existingLikeIndex === -1,
+      liked,
       likeCount: post.likeCount,
       likes: post.likes,
     });
@@ -167,6 +230,25 @@ router.post("/:postId/comment", async (req, res) => {
     post.comments.push(newComment);
     post.commentCount += 1;
     await post.save();
+
+    // Trigger comment notification
+    if (post.authorId !== authorId) {
+      try {
+        const notification = new Notification({
+          userId: post.authorId,
+          senderId: authorId,
+          senderName: authorName,
+          senderAvatar: authorAvatar || "",
+          type: "comment",
+          postId: postId,
+          postContent: post.content.substring(0, 50),
+          message: `${authorName} commented on your post.`,
+        });
+        await notification.save();
+      } catch (notifErr) {
+        console.error("Error creating comment notification:", notifErr);
+      }
+    }
 
     // Return the newly added comment with its ID
     const addedComment = post.comments[post.comments.length - 1];
@@ -215,6 +297,62 @@ router.delete("/:postId/comment/:commentId", async (req, res) => {
   } catch (error) {
     console.error("Error deleting comment:", error);
     res.status(500).json({ message: "Failed to delete comment" });
+  }
+});
+
+// Add reply to comment
+router.post("/:postId/comment/:commentId/reply", async (req, res) => {
+  try {
+    const { postId, commentId } = req.params;
+    const { content, authorId, authorName, authorAvatar } = req.body;
+
+    if (!content || !authorId || !authorName) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const post = await Post.findOne({ postId });
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    const comment = post.comments.id(commentId);
+    if (!comment) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    const newReply = {
+      content,
+      authorId,
+      authorName,
+      authorAvatar,
+    };
+
+    comment.replies.push(newReply);
+    await post.save();
+
+    // Trigger notification for comment author (unless they replied to their own comment)
+    if (comment.authorId !== authorId) {
+      try {
+        const notification = new Notification({
+          userId: comment.authorId,
+          senderId: authorId,
+          senderName: authorName,
+          senderAvatar: authorAvatar || "",
+          type: "comment",
+          postId: postId,
+          postContent: comment.content.substring(0, 50),
+          message: `${authorName} replied to your comment.`,
+        });
+        await notification.save();
+      } catch (notifErr) {
+        console.error("Error creating reply notification:", notifErr);
+      }
+    }
+
+    res.status(201).json(post.comments);
+  } catch (error) {
+    console.error("Error adding comment reply:", error);
+    res.status(500).json({ message: "Failed to add reply" });
   }
 });
 
