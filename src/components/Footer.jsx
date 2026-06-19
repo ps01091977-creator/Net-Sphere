@@ -23,43 +23,20 @@ export function Footer() {
 
   const footerSections = [
     {
-      title: "Platform",
+      title: "Explore",
       links: [
         { name: "Home", href: "/" },
-        { name: "About Us", href: "/about" },
-        { name: "Features", href: "/features" },
-        { name: "Pricing", href: "/pricing" },
-        { name: "Contact", href: "/contact" },
-      ],
-    },
-    {
-      title: "Community",
-      links: [
-        { name: "Network", href: "/network" },
-        { name: "Groups", href: "/groups" },
-        { name: "Events", href: "/events" },
         { name: "Jobs", href: "/jobs" },
-        { name: "Learning", href: "/learning" },
+        { name: "Search", href: "/search" },
       ],
     },
     {
-      title: "Resources",
+      title: "Network & Messaging",
       links: [
-        { name: "Help Center", href: "/help" },
-        { name: "Blog", href: "/blog" },
-        { name: "API Docs", href: "/api" },
-        { name: "Developer", href: "/developer" },
-        { name: "Partners", href: "/partners" },
-      ],
-    },
-    {
-      title: "Legal",
-      links: [
-        { name: "Privacy Policy", href: "/privacy" },
-        { name: "Terms of Service", href: "/terms" },
-        { name: "Cookie Policy", href: "/cookies" },
-        { name: "Security", href: "/security" },
-        { name: "Accessibility", href: "/accessibility" },
+        { name: "My Network", href: "/network" },
+        { name: "Add Connection", href: "/add-connection" },
+        { name: "Messaging", href: "/messages" },
+        { name: "Notifications", href: "/notifications" },
       ],
     },
   ];
@@ -68,7 +45,7 @@ export function Footer() {
     { icon: Linkedin, href: "#", label: "LinkedIn" },
     { icon: Twitter, href: "#", label: "Twitter" },
     { icon: Github, href: "#", label: "GitHub" },
-    { icon: Mail, href: "mailto:contact@minilinkedin.com", label: "Email" },
+    { icon: Mail, href: "mailto:contact@nextdevsolution.com", label: "Email" },
   ];
 
   const stats = [
@@ -106,7 +83,7 @@ export function Footer() {
                       <Users className="h-8 w-8 text-black" />
                     </div>
                     <span className="text-2xl font-bold text-blue-600">
-                      Mini LinkedIn
+                      NetSphere
                     </span>
                   </div>
                 </Link>
@@ -120,11 +97,11 @@ export function Footer() {
                 <div className="space-y-3 mb-6">
                   <div className="flex items-center space-x-3 text-gray-400">
                     <Mail className="h-4 w-4" />
-                    <span>contact@minilinkedin.com</span>
+                    <span>contact@nextdevsolution.com</span>
                   </div>
                   <div className="flex items-center space-x-3 text-gray-400">
                     <Phone className="h-4 w-4" />
-                    <span>+91 99999 00000</span>
+                    <span>+91 85329 31138</span>
                   </div>
                   <div className="flex items-center space-x-3 text-gray-400">
                     <MapPin className="h-4 w-4" />
@@ -154,6 +131,7 @@ export function Footer() {
             {footerSections.map((section, sectionIndex) => (
               <motion.div
                 key={section.title}
+                className="lg:col-span-2"
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: sectionIndex * 0.1 }}
@@ -193,7 +171,7 @@ export function Footer() {
                 viewport={{ once: true }}
                 className="text-gray-400 text-sm flex items-center mb-4 md:mb-0"
               >
-                <span>© 2025 Mini LinkedIn.</span>
+                <span>© 2025 NetSphere.</span>
               </motion.div>
 
               <motion.button

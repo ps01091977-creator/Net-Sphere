@@ -38,7 +38,7 @@ app.get("/health", (req, res) => {
 // Root endpoint
 app.get("/", (req, res) => {
   res.json({
-    message: "Mini LinkedIn API is running!",
+    message: "NetSphere API is running!",
     version: "1.0.0",
     endpoints: {
       health: "/health",

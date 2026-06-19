@@ -92,7 +92,7 @@ export function DefaultLoadingScreen() {
           className="text-4xl md:text-5xl font-bold text-gray-900 mb-4"
         >
           <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            MiniLinkedIn
+            NetSphere
           </span>
         </motion.h1>
 

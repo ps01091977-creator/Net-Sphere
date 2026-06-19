@@ -303,7 +303,7 @@ export function RightSidebar() {
           <span>•</span>
           <span className="hover:text-blue-600 cursor-pointer">Terms</span>
         </div>
-        <p className="text-[10px] text-gray-400">Mini LinkedIn © 2026</p>
+        <p className="text-[10px] text-gray-400">NetSphere © 2026</p>
       </div>
     </div>
   );

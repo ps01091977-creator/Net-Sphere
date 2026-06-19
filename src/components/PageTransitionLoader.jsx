@@ -66,7 +66,7 @@ export function PageTransitionLoader({ isLoading }) {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="text-2xl font-bold text-blue-600 mb-4"
             >
-              MiniLinkedIn
+              NetSphere
             </motion.h1>
 
             {/* Loading Text */}

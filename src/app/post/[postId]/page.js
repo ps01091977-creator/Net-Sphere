@@ -28,7 +28,7 @@ export default function PostPage() {
 
           // Update page title and meta tags for SEO
           if (postData) {
-            document.title = `${postData.authorName}'s Post - Mini LinkedIn`;
+            document.title = `${postData.authorName}'s Post - NetSphere`;
 
             // Update meta description
             const metaDescription = document.querySelector(
@@ -39,7 +39,7 @@ export default function PostPage() {
                 "content",
                 `${postData.content.substring(0, 150)}... - Shared by ${
                   postData.authorName
-                } on Mini LinkedIn Platform`
+                } on NetSphere Platform`
               );
             } else {
               const meta = document.createElement("meta");
@@ -49,7 +49,7 @@ export default function PostPage() {
                 150
               )}... - Shared by ${
                 postData.authorName
-              } on Mini LinkedIn Platform`;
+              } on NetSphere Platform`;
               document.head.appendChild(meta);
             }
 
@@ -68,7 +68,7 @@ export default function PostPage() {
 
             addOrUpdateMetaTag(
               "og:title",
-              `${postData.authorName}'s Post - Mini LinkedIn`
+              `${postData.authorName}'s Post - NetSphere`
             );
             addOrUpdateMetaTag(
               "og:description",
